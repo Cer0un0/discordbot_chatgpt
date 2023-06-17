@@ -3,6 +3,10 @@ import os
 from dotenv import load_dotenv
 import openai
 from discord import Client, Intents, Message, Thread
+from langchain.agents import ZeroShotAgent, Tool, AgentExecutor, load_tools
+from langchain import OpenAI, SerpAPIWrapper, LLMChain
+from langchain.chat_models import ChatOpenAI
+
 
 load_dotenv()
 TOKEN = os.environ['TOKEN']  # discord botのtoken
@@ -12,6 +16,31 @@ LIMIT = 200  # openaiにAPIで送る会話の上限
 
 client: Client = Client(intents=Intents.all())
 
+async def search(search_str: str):
+    llm = OpenAI()
+    # ツールの準備
+    tools = load_tools(["google-search"], llm=llm)
+    # プロンプトテンプレートの準備
+    prefix = os.environ['PREFIX']
+    suffix = os.environ['SUFFIX']
+    suffix +="""
+    Question: {input}
+    {agent_scratchpad}
+    """
+
+    prompt = ZeroShotAgent.create_prompt(
+        tools,
+        prefix=prefix,
+        suffix=suffix,
+        input_variables=["input", "agent_scratchpad"]
+    )
+
+    # エージェントの準備
+    llm_chain = LLMChain(llm=OpenAI(temperature=0), prompt=prompt)
+    agent = ZeroShotAgent(llm_chain=llm_chain, tools=tools)
+    agent_executor = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True)
+    result = agent_executor.run(search_str)
+    return result
 
 async def chatgpt(message: Message):
     """ chatGPTによるreplyを行う"""
@@ -43,10 +72,12 @@ async def chatgpt(message: Message):
         messages: list[dict[str, str]] = [{"role": "user", "content": escape_content}]
 
     # 結果を取得
-    response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-
+#    response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages
+    print(messages[-1]['content'])
+    response = await search(messages[-1]['content'])
     # Reply
-    reply: str = "\n".join([choice["message"]["content"] for choice in response["choices"]])
+#    reply: str = "\n".join([choice["message"]["content"] for choice in response["choices"]])
+    reply: str = response
     await thread.send(reply)
 
 
