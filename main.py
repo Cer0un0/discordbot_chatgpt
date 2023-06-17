@@ -3,9 +3,10 @@ import os
 from dotenv import load_dotenv
 import openai
 from discord import Client, Intents, Message, Thread
-from langchain.agents import ZeroShotAgent, Tool, AgentExecutor, load_tools
-from langchain import OpenAI, SerpAPIWrapper, LLMChain
-from langchain.chat_models import ChatOpenAI
+from langchain.agents import ZeroShotAgent, AgentExecutor, load_tools
+from langchain import OpenAI, LLMChain
+from langchain.agents import initialize_agent
+from langchain.agents import AgentType
 
 
 load_dotenv()
@@ -17,29 +18,12 @@ LIMIT = 200  # openaiにAPIで送る会話の上限
 client: Client = Client(intents=Intents.all())
 
 async def search(search_str: str):
-    llm = OpenAI()
-    # ツールの準備
+    search_str += '\n日本語で回答してください'
+
+    llm = OpenAI(temperature=0)
     tools = load_tools(["google-search"], llm=llm)
-    # プロンプトテンプレートの準備
-    prefix = os.environ['PREFIX']
-    suffix = os.environ['SUFFIX']
-    suffix +="""
-    Question: {input}
-    {agent_scratchpad}
-    """
-
-    prompt = ZeroShotAgent.create_prompt(
-        tools,
-        prefix=prefix,
-        suffix=suffix,
-        input_variables=["input", "agent_scratchpad"]
-    )
-
-    # エージェントの準備
-    llm_chain = LLMChain(llm=OpenAI(temperature=0), prompt=prompt)
-    agent = ZeroShotAgent(llm_chain=llm_chain, tools=tools)
-    agent_executor = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True)
-    result = agent_executor.run(search_str)
+    agent = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
+    result = agent.run(search_str)
     return result
 
 async def chatgpt(message: Message):
