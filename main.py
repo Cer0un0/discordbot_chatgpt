@@ -58,7 +58,10 @@ async def chatgpt(message: Message):
     # 結果を取得
 #    response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages
     print(messages[-1]['content'])
-    response = await search(messages[-1]['content'])
+    try:
+        response = await search(messages[-1]['content'])
+    except:
+        response = 'もう少し具体的に質問すると返してくれることがあるよ'
     # Reply
 #    reply: str = "\n".join([choice["message"]["content"] for choice in response["choices"]])
     reply: str = response
