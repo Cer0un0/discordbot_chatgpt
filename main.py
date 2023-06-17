@@ -1,10 +1,12 @@
 import re
-
+import os
+from dotenv import load_dotenv
 import openai
 from discord import Client, Intents, Message, Thread
 
-TOKEN = ""  # discord botのtoken
-openai.api_key = ""  # openaiのapi key
+load_dotenv()
+TOKEN = os.environ['TOKEN']  # discord botのtoken
+openai.api_key = os.environ['OPENAI_API_KEY']  # openaiのapi key
 
 LIMIT = 200  # openaiにAPIで送る会話の上限
 
@@ -51,7 +53,7 @@ async def chatgpt(message: Message):
 @client.event
 async def on_message(message: Message):
     """ メッセージを受信したときのイベント"""
-
+    
     if client.user in message.mentions or type(message.channel) is Thread:
 
         # bot自身のメッセージは無視
