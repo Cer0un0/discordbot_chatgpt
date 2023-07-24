@@ -46,6 +46,7 @@ async def search(search_str: str):
     result = agent.run(search_str)
     '''
     result = agent_chain.run(input=search_str)
+    print(result)
     return result
 
 async def chatgpt(message: Message):
@@ -56,6 +57,10 @@ async def chatgpt(message: Message):
 
     if type(message.channel) is Thread:  # messageがスレッド内の場合
         thread: Thread = message.channel
+
+        # chatgpt用にbotが作成したthreadでなければreturn
+        if thread.owner != client.user:
+            return
 
         # openaiに送るメッセージ
         messages: list[dict[str, str]] = []
